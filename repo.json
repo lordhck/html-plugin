@@ -1,0 +1,15 @@
+[{
+  "Name": "html",
+  "Description": "A HTML plugin for Micro.",
+  "Tags": ["html", "snippets", "web"],
+  "Website": "https://github.com/lordhck/html-plugin",
+  "Versions": [
+    {
+      "Version": "0.1.0",
+      "Url": "https://github.com/lordhck/html-plugin/archive/v0.1.0.zip",
+      "Require": {
+        "micro": ">=2.0.0"
+      }
+    }
+  ]
+}]
