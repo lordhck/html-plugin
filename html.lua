@@ -1,11 +1,13 @@
-VERSION = "0.1.0"
+VERSION = "0.2.0"
 
 local micro  = import("micro")
 local config = import("micro/config")
 local buffer = import("micro/buffer")
 
--- Container tags, expanded to <tag></tag>. Values reserve room for
--- future default attributes (e.g. a = {"href"}, img = {"src", "alt"}).
+-- Known tags, keyed by name. The value is a list of default attributes:
+-- "name" for an empty attribute ("" -> cursor lands here), {"name", "value"}
+-- for a pre-filled one. Container tags expand to <tag></tag>; tags listed in
+-- void_tags below are self-closing and expand to <tag> with no closing tag.
 local html_tags = {
     -- Document
     html = {}, head = {}, body = {}, title = {}, style = {}, script = {},
@@ -43,6 +45,25 @@ local html_tags = {
     -- Embedded / interactive
     iframe = {}, video = {}, audio = {}, canvas = {}, svg = {},
     picture = {}, object = {}, map = {}, template = {},
+
+    -- Void elements (self-closing; see void_tags). Values are default attrs.
+    area = {}, base = {"href"}, br = {}, col = {}, embed = {"src"},
+    hr = {}, wbr = {},
+    img = {"src", "alt"},
+    input = {"type"},
+    link = {{"rel", "stylesheet"}, "href"},
+    meta = {"name", "content"},
+    param = {"name", "value"},
+    source = {"src"},
+    track = {"src"},
+}
+
+-- Tags with no closing tag. Their default attributes live in html_tags above;
+-- this set only marks which tags are self-closing.
+local void_tags = {
+    area = true, base = true, br = true, col = true, embed = true,
+    hr = true, img = true, input = true, link = true, meta = true,
+    param = true, source = true, track = true, wbr = true,
 }
 
 -- Abbreviations that expand to literal text. A "$0" marks the final cursor.
@@ -64,6 +85,44 @@ local snippets = {
         "</html>",
     }, "\n"),
 }
+
+-- Render a tag's default-attribute list into a string. The first empty-valued
+-- attribute gets a "$0" cursor marker. Returns the string (with a leading
+-- space when non-empty) and whether a cursor marker was placed.
+local function render_attrs(attrs)
+    if not attrs or #attrs == 0 then
+        return "", false
+    end
+    local parts = {}
+    local placed = false
+    for _, attr in ipairs(attrs) do
+        local name, value
+        if type(attr) == "table" then
+            name, value = attr[1], attr[2]
+        else
+            name, value = attr, ""
+        end
+        if value == "" and not placed then
+            value = "$0"
+            placed = true
+        end
+        parts[#parts + 1] = name .. '="' .. value .. '"'
+    end
+    return " " .. table.concat(parts, " "), placed
+end
+
+-- Build an expansion template for a tag, with "$0" marking the final cursor.
+local function tag_template(abbr, attrs)
+    local rendered, placed = render_attrs(attrs)
+    local open = "<" .. abbr .. rendered .. ">"
+    if void_tags[abbr] then
+        return placed and open or (open .. "$0")
+    end
+    if placed then
+        return open .. "</" .. abbr .. ">"
+    end
+    return open .. "$0</" .. abbr .. ">"
+end
 
 -- Returns the abbreviation before the cursor and its start column, or nil.
 local function abbreviation_before_cursor(bp)
@@ -118,9 +177,7 @@ function expand(bp)
     end
 
     if html_tags[abbr] then
-        bp.Buf:Remove(startLoc, endLoc)
-        bp.Buf:Insert(startLoc, "<" .. abbr .. "></" .. abbr .. ">")
-        bp.Cursor:GotoLoc(buffer.Loc(startX + #abbr + 2, y))
+        insert_snippet(bp, startLoc, endLoc, tag_template(abbr, html_tags[abbr]))
         return true
     end
 
