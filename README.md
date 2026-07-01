@@ -2,11 +2,13 @@
 
 A lightweight HTML expansion plugin for [Micro](https://micro-editor.github.io/).
 
-Current features:
+Current features v0.3:
 
 - 89 built-in HTML container tags
+- 14 self-closing (void) tags with default attributes
 - Basic snippet support
 - HTML5 boilerplate generation via "!"
+- Colon aliases (meta:charset, meta:viewport, a:href)
 - Automatic cursor placement after expansion
 
 This project is still a work in progress.
