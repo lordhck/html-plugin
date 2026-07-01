@@ -1,4 +1,4 @@
-VERSION = "0.2.0"
+VERSION = "0.3.0"
 
 local micro  = import("micro")
 local config = import("micro/config")
@@ -84,6 +84,11 @@ local snippets = {
         "</body>",
         "</html>",
     }, "\n"),
+
+    -- tag:variant aliases, expanded to a common preset for that tag.
+    ["meta:charset"]  = '<meta charset="UTF-8">',
+    ["meta:viewport"] = '<meta name="viewport" content="width=device-width, initial-scale=1.0">',
+    ["a:href"]        = '<a href="$0"></a>',
 }
 
 -- Render a tag's default-attribute list into a string. The first empty-valued
@@ -129,7 +134,7 @@ local function abbreviation_before_cursor(bp)
     local c = bp.Cursor
     local line = bp.Buf:Line(c.Y)
     local before = string.sub(line, 1, c.X)
-    local abbr = string.match(before, "!$") or string.match(before, "[%w%-]+$")
+    local abbr = string.match(before, "!$") or string.match(before, "[%w%-:]+$")
     if not abbr then
         return nil
     end
